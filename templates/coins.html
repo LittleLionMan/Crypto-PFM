@@ -1,0 +1,248 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Coins
+{% endblock %}      
+
+{% block main %}
+<div class="container d-flex justify-content-center">
+    <button type="button" 
+    class="btn btn-primary btn-lg"
+    data-bs-toggle="modal" 
+    data-bs-target="#addModal"
+    >
+        Add Coin
+    </button>
+
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h1 class="modal-title fs-5" id="addModalLabel">Add Coin</h1>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="coinData" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="coinName" class="form-label">Choose name</label>
+                        <input 
+                            class="form-control" 
+                            autofocus 
+                            list="datalistOptions"
+                            name="coinName" 
+                            id="coinName" 
+                            placeholder="Type to search..."
+                        >
+                        <datalist id="datalistOptions">
+                        {% for coin in list %}
+                            <option value="{{ coin.name }}" data-id="{{ coin.id }}" data-symbol="{{ coin.symbol }}"></option>
+                        {% endfor %}    
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label for="coinId" class="form-label">Coin ID</label>
+                        <input class="form-control" name="coinId" id="coinId" type="text" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="coinSymbol" class="form-label">Coin Symbol</label>
+                        <input class="form-control" name="coinSymbol" id="coinSymbol" type="text" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Add</button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-2">
+      <div id="coin-list" class="list-group overflow-auto" style="max-height: 22em">
+        {% for coin in coins %}
+            <a class="list-group-item list-group-item-action" href="#{{ coin.coin_id }}">{{ coin.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="col-10">
+        <div 
+            data-bs-spy="scroll" 
+            data-bs-target="#coin-list" 
+            data-bs-smooth-scroll="true" 
+            class="scrollspy overflow-auto" 
+            tabindex="0"
+            style="max-height: 22em"
+        >
+            {% for coin in coins %}
+            <div class="d-flex align-items-center justify-content-between p-3 border rounded shadow-sm coin-container" id="{{ coin.coin_id }}">
+                <div class="me-3">
+                    <img src="{{ coin.image }}" alt="Coin Image" class="rounded">
+                </div>
+                
+                <div class="flex-grow-1">
+                    <h5 class="mb-3">
+                        <a href="/coins/{{ coin.name }}">{{ coin.name }}</a>
+                    </h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="border rounded px-3 py-1 bg-light">Price: ${{ coin.price }}</span>
+                        <span class="border rounded px-3 py-1 bg-light">24h Change: {{ coin.price_change }}%</span>
+                        <span class="border rounded px-3 py-1 bg-light">Avg Buy: ${{ coin.aSpend }}</span>
+                        <span class="border rounded px-3 py-1 bg-light">Avg Sell: ${{ coin.aEarned }}</span>
+                        <span class="border rounded px-3 py-1 bg-light">Amount: {{ coin.amount }}</span>
+                        <span class="border rounded px-3 py-1 bg-light">Total: ${{ coin.amount * coin.price }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <button class="btn btn-danger btn-sm delete-btn" data-coin-id="{{ coin.coin_id }}">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div 
+    id="toast-container" 
+    class="toast-container position-fixed bottom-0 end-0 p-3" 
+    style="z-index: 1055;"
+>
+</div>
+
+<script type="module">
+    import { setupDeleteModal, showErrorToast } from '/static/jshelpers.js';
+
+    function getModalText(button) {
+        const coinName = button.closest(".coin-container").querySelector("h5").textContent;
+        return `Are you sure you want to delete ${coinName}? This will also delete all underlying transactions.`;
+    }
+
+    document.getElementById("coinName").addEventListener("input", function() {
+        var selectedCoin = document.querySelector(`#datalistOptions option[value="${this.value}"]`);
+
+        if (selectedCoin) {
+            document.getElementById("coinId").value = selectedCoin.getAttribute("data-id");
+            document.getElementById("coinSymbol").value = selectedCoin.getAttribute("data-symbol");
+        } else {
+            document.getElementById("coinId").value = "";
+            document.getElementById("coinSymbol").value = "";
+        }
+    });
+    
+    //Got this AJAX implementation from chatGPT
+    document.getElementById("coinData").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch("/coins", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message);
+                });
+            }
+            return response.json()
+        })
+        .then(data => {
+            if (data.ok) {
+                const coin = data.coin;
+                const scrollSpyDiv = document.querySelector(".scrollspy");
+                const newCoinDiv = document.createElement("div");
+                newCoinDiv.className = "d-flex align-items-center justify-content-between p-3 border rounded shadow-sm coin-container"
+                newCoinDiv.id = coin.coin_id
+                newCoinDiv.innerHTML = `
+                    <div class="me-3">
+                        <img src="${coin.image}" alt="Coin Image" class="rounded">
+                    </div>
+                    
+                    <div class="flex-grow-1">
+                        <h5 class="mb-3" href="/coins/${coin.name}">${coin.name}</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <span class="border rounded px-3 py-1 bg-light">Price: $${coin.price}</span>
+                            <span class="border rounded px-3 py-1 bg-light">24h Change: ${coin.price_change}%</span>
+                            <span class="border rounded px-3 py-1 bg-light">Avg Buy: $${coin.aSpend}</span>
+                            <span class="border rounded px-3 py-1 bg-light">Avg Sell: $${aEarned}</span>
+                            <span class="border rounded px-3 py-1 bg-light">Amount: ${coin.amount}</span>
+                            <span class="border rounded px-3 py-1 bg-light">Total: $${coin.amount * coin.price}</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <button class="btn btn-danger btn-sm delete-btn" data-coin-id="${coin.coin_id }">Delete</button>
+                    </div>
+                `;
+                scrollSpyDiv.appendChild(newCoinDiv);
+
+                const coinList = document.getElementById("coin-list");
+                const newCoinLink = document.createElement("a");
+                newCoinLink.href = `#${coin.coin_id}`;
+                newCoinLink.className = "list-group-item list-group-item-action";
+                newCoinLink.textContent = coin.name;
+                coinList.appendChild(newCoinLink);
+            }
+        })
+        .catch(error => {
+            showErrorToast(error.message);
+        });
+    });
+
+    function handleDelete(button) {
+        const coinDiv = button.closest(".coin-container");
+        const coinId = button.dataset.coinId;
+
+        fetch("/delete_coin", {
+            method: "POST",
+            body: new URLSearchParams({ coin_id: coinId }),
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                coinDiv.remove();
+
+                const coinListItem = document.querySelector(`#coin-list a[href="#${coinId}"]`);
+                if (coinListItem) {
+                    coinListItem.remove();
+                }
+            } else {
+                console.error("Error:", data.error);
+                alert("Deleting failed: " + data.error);
+            }
+        })
+        .catch(error => {
+             console.error("Error:", error);
+            alert("There was an error: " + error.message);
+        });
+    };
+
+    setupDeleteModal("confirmDeleteModal", "confirmDeleteBtn", handleDelete, getModalText);
+
+</script>
+
+{% endblock %}

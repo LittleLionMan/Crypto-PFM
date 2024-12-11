@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block main %}
+    <div class="container d-flex justify-content-center min-vh-100">
+        <form action="/register" method="post" style="max-width: 15em; width: 100%;">
+            <div class="form-floating mb-3">
+                <input 
+                    autocomplete="off" 
+                    autofocus 
+                    class="form-control {% if username_error %}is-invalid{% endif %}" 
+                    name="username" 
+                    placeholder="Username" 
+                    type="text"
+                    id="floatingUsername"
+                >
+                <label for="floatingUsername">Username</label>
+                {% if username_error %}
+                <div class="invalid-feedback">
+                    {{ username_error }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="form-floating mb-3">
+                <input 
+                    class="form-control {% if password_error %}is-invalid{% endif %}" 
+                    name="password" 
+                    placeholder="Password" 
+                    type="password"
+                    id="floatingPassword"
+                >
+                <label for="floatingPassword">Password</label>
+                {% if password_error %}
+                <div class="invalid-feedback">
+                    {{ password_error }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="form-floating mb-3">
+                <input 
+                    class="form-control {% if confirmation_error %}is-invalid{% endif %}" 
+                    name="confirmation" 
+                    placeholder="Confirm Password" 
+                    type="password"
+                    id="floatingConfirmation"
+                >
+                <label for="floatingUsername">Confirmation</label>
+                {% if confirmation_error %}
+                <div class="invalid-feedback">
+                    {{ confirmation_error }}
+                </div>
+                {% endif %}
+            </div>
+            <button class="btn btn-primary" type="submit">Register</button>
+        </form>
+    </div>
+{% endblock %}

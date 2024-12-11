@@ -1,0 +1,349 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Transactions
+{% endblock %}      
+
+{% block main %}
+<div class="container d-flex justify-content-center">
+    <button type="button" 
+    class="btn btn-primary btn-lg"
+    data-bs-toggle="modal" 
+    data-bs-target="#addBuy"
+    >
+        Add Transaction
+    </button>
+
+    <div class="modal fade" id="addBuy" tabindex="-1" aria-labelledby="addBuyLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div class="d-flex gap-5">
+                <button class="btn btn-primary" data-bs-target="#addSwap" data-bs-toggle="modal">Swap</button>
+                <h1 class="modal-title fs-5" id="addBuyLabel">Add Buy</h1>
+                <button class="btn btn-primary" data-bs-target="#addSell" data-bs-toggle="modal">Sell</button>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="buyData" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="coin_id_buy" value="{{ coin_id }}">
+                    <label for="amountBuy" class="form-label">Choose the amount</label>
+                    <input type="number" step="1" min="0" class="form-control" id="amountBuy" name="amountBuy" placeholder="Enter the amount of tokens">
+                    <div class="mb-3">
+                        <label for="dateInputBuy" class="form-label">Select a date</label>
+                        <input type="date" class="form-control date-input" id="dateInputBuy" name="dateInputBuy">
+                    </div>
+                    <div class="d-flex align-items-center gap-5">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="setZero" name="setZero">
+                            <label class="form-check-label" for="setZero">
+                                Force price as $0
+                            </label>
+                        </div>
+                        <button 
+                            type="button" 
+                            class="btn btn-info" 
+                            data-bs-container="body" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="right" 
+                            data-bs-content="This forces the price of a buy-event to zero. This is helpful to incorporate airdrops, staking-rewards, presents or protocol-revenue">
+                            Help
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Add</button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="addSell" tabindex="-1" aria-labelledby="addSellLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div class="d-flex gap-5">
+                <button class="btn btn-primary" data-bs-target="#addBuy" data-bs-toggle="modal">Buy</button>
+                <h1 class="modal-title fs-5" id="addSellLabel">Add Sell</h1>
+                <button class="btn btn-primary" data-bs-target="#addSwap" data-bs-toggle="modal">Swap</button>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="sellData" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="coin_id_sell" value="{{ coin_id }}">
+                    <label for="amountSell" class="form-label">Choose the amount</label>
+                    <div class="input-group mb-3">
+                        <input type="number" step="1" min="0" class="form-control" id="amountSell" name="amountSell" placeholder="Enter the amount of tokens">
+                        <span class="input-group-text" id="maxAmountSpan">Max: <span id="maxAmount">0</span></span>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dateInput" class="form-label">Select a date</label>
+                        <input type="date" class="form-control date-input" id="dateInputSell" name="dateInputSell">
+                    </div>
+                    <div class="d-flex align-items-center gap-5">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="setZeroSell" name="setZeroSell">
+                            <label class="form-check-label" for="setZeroSell">
+                                Force price as $0
+                            </label>
+                        </div>
+                        <button 
+                            type="button" 
+                            class="btn btn-info" 
+                            data-bs-container="body" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="right" 
+                            data-bs-content="This forces the price of a sell-event to zero. This is helpful to incorporate payments, scams or fees">
+                            Help
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Add</button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="addSwap" tabindex="-1" aria-labelledby="addSwapLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <div class="d-flex gap-5">
+                <button class="btn btn-primary" data-bs-target="#addSell" data-bs-toggle="modal">Sell</button>
+                <h1 class="modal-title fs-5" id="addSwapLabel">Add Swap</h1>
+                <button class="btn btn-primary" data-bs-target="#addBuy" data-bs-toggle="modal">Buy</button>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="coinData" method="post">
+                <div class="modal-body">
+                    
+                    <div class="mb-3">
+                        <label for="dateInput" class="form-label">Select a date</label>
+                        <input type="date" class="form-control date-input" id="dateInput3">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Add</button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+</div>
+
+<table class="table table-striped table-hover mt-5">
+    <thead>
+      <tr>
+        <th scope="col">Action</th>
+        <th scope="col">Amount</th>
+        <th scope="col">Price</th>
+        <th scope="col">Total</th>
+        <th scope="col">Date</th>
+        <th scope="col">Delete</th>
+      </tr>
+    </thead>
+    <tbody class="table-group-divider">
+      {% for tx in txs %}
+      <tr id="{{ tx.id }}">
+        <td>{{ "Buy" if tx.buy else "Sell" }}</td>
+        <td>{{ tx.amount }}</td>
+        <td>${{ tx.price }}</td>
+        <td>${{ tx.price * tx.amount }}</td>
+        <td>{{ tx.date }}</td>
+        <td><button class="btn btn-danger btn-sm delete-btn" data-tx-id="{{ tx.id }}">Delete</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div 
+    id="toast-container" 
+    class="toast-container position-fixed bottom-0 end-0 p-3" 
+    style="z-index: 1055;"
+>
+</div>
+
+  <script type="module">
+    import { setupDeleteModal, showErrorToast } from '/static/jshelpers.js';
+
+    function getModalText(button) {
+        return "Are you sure you want to delete this tx?";
+    }
+    const jsonString = '{{ txs | tojson | safe }}'.replace(/\\\"/g, '"');
+    const txs = JSON.parse(jsonString);
+
+    document.addEventListener('DOMContentLoaded', () => {
+
+        if (!window.popoversInitialized) {
+            const popoverTriggerList = document.querySelectorAll('[data-bs-toggle="popover"]');
+            const popoverList = [...popoverTriggerList].map(
+                (popoverTriggerEl) => new bootstrap.Popover(popoverTriggerEl)
+            );
+            window.popoversInitialized = true;
+        }
+        const today = new Date().toISOString().split('T')[0];
+        const dateInputs = document.querySelectorAll('.date-input');
+        const genesis = "{{ genesis }}";
+        dateInputs.forEach(input => {
+            input.setAttribute('max', today);
+            if (genesis) {
+                input.setAttribute('min', genesis);
+            }
+        });
+
+        const amountSellInput = document.getElementById('amountSell');
+        const maxAmountSpan = document.getElementById('maxAmount');
+        const dateInput = document.getElementById('dateInputSell');
+
+        function calculateMaxAmount(date = null) {
+            const selltxs = txs.reduce((sum, tx) => sum - (tx.buy ? 0 : tx.amount), 0);
+            const filteredTxs = date
+                ? txs.filter(tx => new Date(tx.date) <= new Date(date))
+                : txs
+
+                const result = filteredTxs.reduce((sum, tx) => sum + (tx.buy ? tx.amount : 0), 0) + selltxs;
+                if (result < 0) {
+                    return 0;
+                }
+                return result;
+
+        }
+
+        function updateMaxAmount() {
+            const selectedDate = dateInput.value;
+            const maxAmount = calculateMaxAmount(selectedDate);
+
+            amountSellInput.max = maxAmount;
+            maxAmountSpan.textContent = maxAmount;
+        }
+
+        updateMaxAmount();
+        dateInput.addEventListener('change', updateMaxAmount);
+
+        const sellModal = document.getElementById('addSell');
+        sellModal.addEventListener('show.bs.modal', () => {
+            updateMaxAmount();
+        });
+
+        const formIds = ["buyData", "sellData"];
+
+        formIds.forEach(formId => {
+            const form = document.getElementById(formId);
+            if (form) {
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const formType = e.target.id;
+                const formData = new FormData(this);
+                formData.append("form_type", formType);
+
+                fetch("/tx", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message);
+                        });
+                    }
+                    return response.json()
+                })
+                .then(data => {
+                    if (data.ok) {
+                        const tx = data.tx;
+                        //add to the array to update amount in form correctly
+                        const newTx = {
+                            buy: tx.buy,
+                            date: tx.date,
+                            amount: tx.amount
+                        };
+                        txs.push(newTx);
+
+                        const tBody = document.querySelector(".table-group-divider");
+                        const newRow = document.createElement("tr");
+                        newRow.id = tx.id
+                        newRow.innerHTML = `
+                            <td>${ tx.buy ? "Buy" : "Sell" }</td>
+                            <td>${ tx.amount }</td>
+                            <td>$${ tx.price }</td>
+                            <td>$${ tx.price * tx.amount }</td>
+                            <td>${ tx.date }</td>
+                            <td><button class="btn btn-danger btn-sm delete-btn" data-tx-id="${ tx.id }">Delete</button></td>
+                        `;
+                        tBody.appendChild(newRow);
+                    }
+                })
+                .catch(error => {
+                    showErrorToast(error.message);
+                });
+            });
+            }
+        });
+    });
+
+    function handleDelete(button, txs) {
+        const tr = button.closest("tr");
+        const txId = button.dataset.txId;
+
+        fetch("/delete_tx", {
+            method: "POST",
+            body: new URLSearchParams({ tx_id: txId }),
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    throw new Error(data.message);
+                });
+            }
+            return response.json()
+            })
+        .then(data => {
+            if (data.success) {
+                const newTx = {
+                    buy: !data.buy,
+                    date: data.date,
+                    amount: data.amount
+                };
+                txs.push(newTx);
+                tr.remove();
+            }
+        })
+        .catch(error => {
+            showErrorToast(error.message);
+        });
+    };
+
+    setupDeleteModal("confirmDeleteModal", "confirmDeleteBtn", handleDelete, getModalText, txs);
+  </script>
+
+{% endblock %}

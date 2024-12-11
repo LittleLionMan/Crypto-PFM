@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Home
+{% endblock %}      
+
+{% block main %}
+    <h1>Portfolio</h1>
+    <!-- https://www.chartjs.org/docs/latest/samples/other-charts/doughnut.html -->
+     <!-- Realized PnL
+         Unrealized PnL -->
+
+         <div class="container mt-5">
+            <h2>Beispiel für ein Diagramm</h2>
+            <div class="row">
+                <div class="col-md-8 offset-md-2">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <script>
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'bar', 
+                data: {
+                    labels: ['Januar', 'Februar', 'März', 'April', 'Mai'],
+                    datasets: [{
+                        label: 'Umsatz (in €)', 
+                        data: [100, 200, 150, 300, 250], 
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        </script>
+{% endblock %}
+
+<!-- Toasts für api Probleme? -->

@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Log In
+{% endblock %}
+
+{% block main %}
+<div class="container d-flex justify-content-center min-vh-100">
+    <form action="/login" method="post" style="max-width: 15em; width: 100%;">
+        <div class="form-floating mb-3">
+            <input 
+                autocomplete="off" 
+                autofocus 
+                class="form-control {% if username_error %}is-invalid{% endif %}" 
+                name="username" 
+                placeholder="Username" 
+                type="text"
+                id="floatingUsername"
+            >
+            <label for="floatingUsername">Username</label>
+            {% if username_error %}
+            <div class="invalid-feedback">
+                {{ username_error }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="form-floating mb-3">
+            <input 
+                class="form-control {% if pw_error %}is-invalid{% endif %}" 
+                name="password" 
+                placeholder="Password" 
+                type="password"
+                id="floatingPassword"
+            >
+            <label for="floatingPassword">Password</label>
+            {% if pw_error %}
+            <div class="invalid-feedback">
+                {{ pw_error }}
+            </div>
+            {% endif %}
+        </div>
+        <button class="btn btn-primary" type="submit">Log In</button>
+    </form>
+</div>
+{% endblock %}
