@@ -91,7 +91,7 @@
                         <span class="border rounded px-3 py-1 bg-light">Avg Buy: ${{ coin.aSpend }}</span>
                         <span class="border rounded px-3 py-1 bg-light">Avg Sell: ${{ coin.aEarned }}</span>
                         <span class="border rounded px-3 py-1 bg-light">Amount: {{ coin.amount }}</span>
-                        <span class="border rounded px-3 py-1 bg-light">Total: ${{ coin.amount * coin.price }}</span>
+                        <span class="border rounded px-3 py-1 bg-light">Total: ${{ (coin.amount * coin.price) | round (2) }}</span>
                     </div>
                 </div>
 
@@ -185,7 +185,7 @@
                             <span class="border rounded px-3 py-1 bg-light">Price: $${coin.price}</span>
                             <span class="border rounded px-3 py-1 bg-light">24h Change: ${coin.price_change}%</span>
                             <span class="border rounded px-3 py-1 bg-light">Avg Buy: $${coin.aSpend}</span>
-                            <span class="border rounded px-3 py-1 bg-light">Avg Sell: $${aEarned}</span>
+                            <span class="border rounded px-3 py-1 bg-light">Avg Sell: $${coin.aEarned}</span>
                             <span class="border rounded px-3 py-1 bg-light">Amount: ${coin.amount}</span>
                             <span class="border rounded px-3 py-1 bg-light">Total: $${coin.amount * coin.price}</span>
                         </div>

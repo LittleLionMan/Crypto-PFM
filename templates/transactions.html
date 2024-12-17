@@ -38,7 +38,7 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="1" id="setZero" name="setZero">
                             <label class="form-check-label" for="setZero">
-                                Force price as $0
+                                Force price to $0
                             </label>
                         </div>
                         <button 
@@ -78,17 +78,17 @@
                     <label for="amountSell" class="form-label">Choose the amount</label>
                     <div class="input-group mb-3">
                         <input type="number" step="1" min="0" class="form-control" id="amountSell" name="amountSell" placeholder="Enter the amount of tokens">
-                        <span class="input-group-text" id="maxAmountSpan">Max: <span id="maxAmount">0</span></span>
+                        <span class="input-group-text" id="maxAmountSpan">Max: <span id="maxAmountSell">0</span></span>
                     </div>
                     <div class="mb-3">
-                        <label for="dateInput" class="form-label">Select a date</label>
+                        <label for="dateInputSell" class="form-label">Select a date</label>
                         <input type="date" class="form-control date-input" id="dateInputSell" name="dateInputSell">
                     </div>
                     <div class="d-flex align-items-center gap-5">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="1" id="setZeroSell" name="setZeroSell">
                             <label class="form-check-label" for="setZeroSell">
-                                Force price as $0
+                                Force price to $0
                             </label>
                         </div>
                         <button 
@@ -122,12 +122,63 @@
               </div>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form id="coinData" method="post">
+            <form id="swapData" method="post">
                 <div class="modal-body">
-                    
+                    <input type="hidden" name="coin_id_swap" value="{{ coin_id }}">
+                    <input type="hidden" name="other_coin_id" id="other_coin_id" value="">
                     <div class="mb-3">
-                        <label for="dateInput" class="form-label">Select a date</label>
-                        <input type="date" class="form-control date-input" id="dateInput3">
+                        <label for="coinName" class="form-label">Choose coin to swap:</label>
+                        <input 
+                            class="form-control" 
+                            autofocus 
+                            list="datalistOptions"
+                            name="coinName" 
+                            id="coinName" 
+                            placeholder="Type to search..."
+                            autocomplete="off"
+                        >
+                        <datalist id="datalistOptions">
+                        {% for coin in other_coins %}
+                            <option value="{{ coin.name }}" data-id="{{ coin.id }}"></option>
+                        {% endfor %}  
+                        </datalist>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dateInputSwap" class="form-label">Select a date</label>
+                        <input type="date" class="form-control" id="dateInputSwap" name="dateInputSwap" disabled>
+                    </div>
+                    <label for="amountSwap" class="form-label">Choose amount to swap</label>
+                    <div class="input-group mb-3">
+                        <input type="number" step="1" min="0" class="form-control" id="amountSwap" name="amountSwap" placeholder="Enter the amount of tokens" disabled>
+                        <span class="input-group-text" id="maxAmountSpan">Max: <span id="maxAmountSwap">0</span></span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mt-5">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="setSwap" name="setSwap">
+                            <label class="form-check-label" for="setSwap">
+                                Customize received tokens
+                            </label>
+                        </div>
+                        <div>
+                            <input 
+                                type="number" 
+                                id="receiveValue" 
+                                name="receiveValue" 
+                                class="form-control" 
+                                placeholder="Choose amount" 
+                                disabled
+                                min="0"
+                            >
+                        </div>
+                        <button 
+                            type="button" 
+                            class="btn btn-info" 
+                            data-bs-container="body" 
+                            data-bs-toggle="popover" 
+                            data-bs-placement="right" 
+                            data-bs-content="Allows to set a custom swap amount. This is useful to account for fees, arbitrage or price fluctuations during a day. The difference in prices will be added to the value 'Opportunity Costs' and can be resetted on the main page at any time.">
+                            Help
+                        </button>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -155,7 +206,7 @@
       {% for tx in txs %}
       <tr id="{{ tx.id }}">
         <td>{{ "Buy" if tx.buy else "Sell" }}</td>
-        <td>{{ tx.amount }}</td>
+        <td>{{ tx.amount | round (6) }}</td>
         <td>${{ tx.price }}</td>
         <td>${{ tx.price * tx.amount }}</td>
         <td>{{ tx.date }}</td>
@@ -196,9 +247,11 @@
     function getModalText(button) {
         return "Are you sure you want to delete this tx?";
     }
-    const jsonString = '{{ txs | tojson | safe }}'.replace(/\\\"/g, '"');
-    const txs = JSON.parse(jsonString);
-
+    const jsonStringTx = '{{ txs | tojson | safe }}'.replace(/\\\"/g, '"');
+    const jsonStringoTx = '{{ other_txs | tojson | safe }}'.replace(/\\\"/g, '"');
+    const txs = JSON.parse(jsonStringTx);
+    const other_txs = JSON.parse(jsonStringoTx);
+    
     document.addEventListener('DOMContentLoaded', () => {
 
         if (!window.popoversInitialized) {
@@ -219,8 +272,72 @@
         });
 
         const amountSellInput = document.getElementById('amountSell');
-        const maxAmountSpan = document.getElementById('maxAmount');
-        const dateInput = document.getElementById('dateInputSell');
+        const maxAmountSpanSell = document.getElementById('maxAmountSell');
+        const dateInputSell = document.getElementById('dateInputSell');
+
+        const coinNameInput = document.getElementById('coinName');
+        const dateInputSwap = document.getElementById('dateInputSwap');
+        const amountInput = document.getElementById('amountSwap');
+        const maxAmountSpanSwap = document.getElementById('maxAmountSwap');
+        const other_coin_id = document.getElementById('other_coin_id');
+
+        const swapCheck = document.getElementById('setSwap');
+        const receiveBox = document.getElementById('receiveValue');
+
+        let filteredTxs = [];
+
+        swapCheck.addEventListener('change', function () {
+            if (swapCheck.checked) {
+                receiveBox.disabled = false;
+            } else {
+                receiveBox.disabled = true;
+                receiveBox.value = '';
+            }
+        });
+
+        coinNameInput.addEventListener('input', () => {
+            const selectedCoinName = coinNameInput.value;
+            const selectedCoin = Array.from(document.getElementById('datalistOptions').options).find(
+                option => option.value === selectedCoinName
+            );
+
+            if (selectedCoin) {
+                const coinId = selectedCoin.dataset.id;
+                filteredTxs = other_txs.filter(tx => tx.coin_id === parseInt(coinId));
+                if (filteredTxs.length > 0) {
+                    const earliestDate = filteredTxs.reduce((earliest, tx) => 
+                        new Date(tx.date) < new Date(earliest) ? tx.date : earliest, 
+                        filteredTxs[0].date
+                    );
+                    dateInputSwap.disabled = false;
+                    dateInputSwap.min = earliestDate;
+                    other_coin_id.value = coinId;
+                }
+            } else {
+                dateInputSwap.disabled = true;
+                dateInputSwap.value = '';
+                amountInput.disabled = true;
+                maxAmountSpan.textContent = '0';
+            }
+        });
+
+        dateInputSwap.addEventListener('input', () => {
+            const selectedDate = dateInputSwap.value;
+
+            const totalAmount = filteredTxs
+                .filter(tx => new Date(tx.date) <= new Date(selectedDate))
+                .reduce((sum, tx) => tx.buy ? sum + tx.amount : sum - tx.amount, 0);
+
+            if (totalAmount > 0) {
+                amountInput.disabled = false;
+                amountInput.max = totalAmount;
+                maxAmountSpanSwap.textContent = totalAmount;
+            } else {
+                amountInput.disabled = true;
+                amountInput.max = 0;
+                maxAmountSpanSwap.textContent = '0';
+            }
+        });
 
         function calculateMaxAmount(date = null) {
             const selltxs = txs.reduce((sum, tx) => sum - (tx.buy ? 0 : tx.amount), 0);
@@ -237,22 +354,22 @@
         }
 
         function updateMaxAmount() {
-            const selectedDate = dateInput.value;
+            const selectedDate = dateInputSell.value;
             const maxAmount = calculateMaxAmount(selectedDate);
 
             amountSellInput.max = maxAmount;
-            maxAmountSpan.textContent = maxAmount;
+            maxAmountSpanSell.textContent = maxAmount;
         }
 
         updateMaxAmount();
-        dateInput.addEventListener('change', updateMaxAmount);
+        dateInputSell.addEventListener('change', updateMaxAmount);
 
         const sellModal = document.getElementById('addSell');
         sellModal.addEventListener('show.bs.modal', () => {
             updateMaxAmount();
         });
 
-        const formIds = ["buyData", "sellData"];
+        const formIds = ["buyData", "sellData", "swapData"];
 
         formIds.forEach(formId => {
             const form = document.getElementById(formId);
@@ -278,13 +395,23 @@
                 .then(data => {
                     if (data.ok) {
                         const tx = data.tx;
-                        //add to the array to update amount in form correctly
                         const newTx = {
                             buy: tx.buy,
                             date: tx.date,
                             amount: tx.amount
                         };
                         txs.push(newTx);
+
+                        if (data.other_tx) {
+                            const other_tx = data.other_tx;
+                            const newoTx = {
+                                coin_id: other_tx.id,
+                                buy: other_tx.buy,
+                                date: other_tx.date,
+                                amount: other_tx.amount
+                            };
+                            other_txs.push(newoTx);
+                        }
 
                         const tBody = document.querySelector(".table-group-divider");
                         const newRow = document.createElement("tr");

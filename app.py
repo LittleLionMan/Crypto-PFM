@@ -135,7 +135,10 @@ def coins():
             for sell in sells:
                 amountSell = amountSell + sell["amount"]
                 earned = earned + sell["amount"] * sell["price"]
-            coin["amount"] = amountBuy - amountSell
+            if (amountBuy - amountSell) > 1:
+                coin["amount"] = round(amountBuy - amountSell, 2)
+            else:
+                coin["amount"] = round(amountBuy - amountSell, 6) #amountBuy - amountSell
             
             if amountBuy == 0:
                 coin["aSpend"] = 0
@@ -173,26 +176,27 @@ def delete_tx():
     tx_id = request.form.get("tx_id")
     
     checks = db.execute (
-        "SELECT buy, amount, date FROM transactions where id = ?", tx_id
-    )
-    if checks[0]["buy"] == True:
+        "SELECT coin_id, buy, amount, date FROM transactions where id = ?", tx_id
+    )[0]
+    if checks["buy"] == True:
         checkTotal = db.execute(
             "WITH Bought AS ( \
                 SELECT COALESCE(SUM(amount), 0) AS total_bought \
                 FROM transactions \
-                WHERE buy = true \
+                WHERE buy = true AND coin_id = ? AND date <= ? AND user_id = ? \
             ), \
             Sold AS ( \
                 SELECT COALESCE(SUM(amount), 0) AS total_sold \
                 FROM transactions \
-                WHERE buy = false \
+                WHERE buy = false AND coin_id = ? AND date <= ? AND user_id = ? \
             ) \
             SELECT \
                 (Bought.total_bought - Sold.total_sold) AS net_amount \
-            FROM Bought, Sold"
-            )
+            FROM Bought, Sold", 
+            checks["coin_id"], checks["date"], session["user_id"], checks["coin_id"], checks["date"], session["user_id"]
+        )
         
-        if checkTotal[0]["net_amount"] < checks[0]["amount"]:
+        if checkTotal[0]["net_amount"] < checks["amount"]:
             return jsonify({"status": "error", "message": "Your portfolio would be negative, if you delete this tx"}), 400
 
     if not tx_id:
@@ -202,9 +206,9 @@ def delete_tx():
         db.execute("DELETE FROM transactions WHERE id = ?", tx_id)
         return jsonify({
             "success": True, 
-            "buy": checks[0]["buy"], 
-            "amount": checks[0]["amount"],
-            "date": checks[0]["date"]
+            "buy": checks["buy"], 
+            "amount": checks["amount"],
+            "date": checks["date"]
         })
     except:
         return jsonify({"success": False, "error": "Tx not found"}), 404
@@ -218,10 +222,18 @@ def coin_page(name):
     txs = db.execute(
         "SELECT * from transactions WHERE user_id = ? AND coin_id = ? ORDER BY date", session["user_id"], coin_info[0]["id"]
     )
+    other_txs = db.execute(
+        "SELECT * from transactions WHERE user_id = ? AND coin_id != ? ORDER BY date", session["user_id"], coin_info[0]["id"]
+    )
     genesis = coin_info[0]["genesis"]
     coin_id = coin_info[0]["coin_id"]
+    id = coin_info[0]["id"]
 
-    return render_template('transactions.html', txs = txs, genesis = genesis, coin_id = coin_id)
+    other_coins = db.execute(
+        "SELECT id, name FROM coins WHERE user_id = ? AND coin_id != ?", session["user_id"], coin_id
+    )
+
+    return render_template('transactions.html', txs = txs, genesis = genesis, coin_id = coin_id, id = id, other_coins = other_coins, other_txs = other_txs)
 
 @app.route('/tx', methods=["POST"])
 @login_required
@@ -247,30 +259,31 @@ def tx():
         set_zero = request.form.get("setZeroSell")
         event = False
 
-        checkTotal = db.execute(
-            "WITH Bought AS ( \
-                SELECT COALESCE(SUM(amount), 0) AS total_bought \
-                FROM transactions \
-                WHERE buy = true AND date <= ? \
-            ), \
-            Sold AS ( \
-                SELECT COALESCE(SUM(amount), 0) AS total_sold \
-                FROM transactions \
-                WHERE buy = false \
-            ) \
-            SELECT \
-                (Bought.total_bought - Sold.total_sold) AS net_amount \
-            FROM Bought, Sold", date
-        )
-        if checkTotal[0]["net_amount"] < amount:
-            return jsonify({"status": "error", "message": "You can't sell more coins than you own"}), 400
-
-
-
+    elif form_type == "swapData":
+        try:
+            swap_amount = int(request.form.get("amountSwap"))
+        except: 
+            return jsonify({"status": "error", "message": "Invalid input for amount"}), 400 
+        date = request.form.get("dateInputSwap")
+        coin_id = request.form.get("coin_id_swap")
+        try:
+            swap_id = int(request.form.get("other_coin_id"))
+        except: 
+            return jsonify({"status": "error", "message": "Invalid swap coin id"}), 400 
+        swap_coin_id = db.execute(
+            "SELECT coin_id FROM coins WHERE id = ?", swap_id
+        )[0]["coin_id"]
+        set_zero = False
+        event = True
+        set_swap = request.form.get("setSwap")
+        if set_swap:
+            try:
+                custom_amount = float(request.form.get("receiveValue"))
+            except: 
+                return jsonify({"status": "error", "message": "Invalid Amount"}), 400
+        
     date_obj = datetime.strptime(date, '%Y-%m-%d')
     formatted_date = date_obj.strftime('%d-%m-%Y')
-    if amount <= 0:
-       return jsonify({"status": "error", "message": "Amount has to be higher than 0"}), 400
     
     if set_zero:
         hPrice = 0
@@ -283,14 +296,75 @@ def tx():
         if hPrice > 1:
             hPrice = round(hPrice, 2)
     
+    if form_type == "swapData":
+        swap_price = coingecko(f"coins/{swap_coin_id}/history?date={formatted_date}")
+        if swap_price == None:
+            return jsonify({"status": "error", "message": "API Request failed"}), 400
+
+        hSwapPrice = int(swap_price["market_data"]["current_price"]["usd"])
+        if hSwapPrice > 1:
+            hSwapPrice = round(hSwapPrice, 2)
+        
+        if set_swap:
+            amount = custom_amount
+            opportunity_costs = swap_amount * hSwapPrice - custom_amount * hPrice
+            db.execute (
+                "UPDATE users SET opportunity_costs = opportunity_costs + ? WHERE id = ?", opportunity_costs, session["user_id"]    
+            )
+        else:
+            amount = swap_amount * hSwapPrice / hPrice
+    
+    if amount <= 0:
+       return jsonify({"status": "error", "message": "Amount has to be higher than 0"}), 400
+    
     try:
         id = db.execute(
             "Select id FROM coins WHERE user_id = ? AND coin_id = ?", session["user_id"], coin_id
-        )
+        )[0]["id"]
     except:
         return jsonify({"status": "error", "message": "Invalid coin-id"}), 400
+    
+    #checks für sells
+    if form_type == "sellData":
+        checkTotal = db.execute(
+            "WITH Bought AS ( \
+                SELECT COALESCE(SUM(amount), 0) AS total_bought \
+                FROM transactions \
+                WHERE buy = true AND date <= ? AND coin_id = ? \
+            ), \
+            Sold AS ( \
+                SELECT COALESCE(SUM(amount), 0) AS total_sold \
+                FROM transactions \
+                WHERE buy = false AND date <= ? AND coin_id = ? \
+            ) \
+            SELECT \
+                (Bought.total_bought - Sold.total_sold) AS net_amount \
+            FROM Bought, Sold", date, swap_id, date, swap_id
+        )[0]["net_amount"]
+        if checkTotal < amount:
+            return jsonify({"status": "error", "message": "You can't sell more coins than you own"}), 400
+    
+    if form_type == "swapData":
+        checkTotal = db.execute(
+            "WITH Bought AS ( \
+                SELECT COALESCE(SUM(amount), 0) AS total_bought \
+                FROM transactions \
+                WHERE buy = true AND date <= ? AND coin_id = ? \
+            ), \
+            Sold AS ( \
+                SELECT COALESCE(SUM(amount), 0) AS total_sold \
+                FROM transactions \
+                WHERE buy = false AND date <= ? AND coin_id = ? \
+            ) \
+            SELECT \
+                (Bought.total_bought - Sold.total_sold) AS net_amount \
+            FROM Bought, Sold", date, swap_id, date, swap_id
+        )[0]["net_amount"]
+        if checkTotal < swap_amount:
+            return jsonify({"status": "error", "message": "You can't sell more coins than you own"}), 400
+    
     new_id = db.execute(
-                "INSERT INTO transactions (user_id, coin_id, buy, price, amount, date) VALUES (?, ?, ?, ?, ?, ?)", session["user_id"], id[0]["id"], event, hPrice, amount, date
+                "INSERT INTO transactions (user_id, coin_id, buy, price, amount, date) VALUES (?, ?, ?, ?, ?, ?)", session["user_id"], id, event, hPrice, amount, date
             )
     tx = {
             "id": new_id,
@@ -300,7 +374,21 @@ def tx():
             "date": date,
         }
 
-    return jsonify({"ok": True, "tx": tx})
+    if form_type == "swapData":
+        db.execute(
+                "INSERT INTO transactions (user_id, coin_id, buy, price, amount, date) VALUES (?, ?, ?, ?, ?, ?)", session["user_id"], swap_id, False, hSwapPrice, swap_amount, date
+            )
+        
+        other_tx = {
+            "id": swap_id,
+            "buy": False,
+            "date": date,
+            "amount": swap_amount,
+        }
+    else:
+        other_tx = None
+
+    return jsonify({"ok": True, "tx": tx, "other_tx": other_tx}), 200
 
 
 """@app.route("/topup", methods=["GET", "POST"])
