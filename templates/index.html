@@ -14,6 +14,7 @@
                 <div class="col-md-5">
                     <h2>Coin Distribution</h2>
                     <canvas id="myChart"></canvas>
+                    <p id="noData"></p>
                 </div>
                 <div class="col-md-5">
                     <form action="/" method="post">
@@ -108,7 +109,15 @@
             } else if (total < 0) {
                 totalTotal.style.color = "red";
             }
-            let percent = (((earnings + cValue) / spendings) * 100);
+            let percent;
+            let realizedPercent
+            if (spendings > 0) {
+                realizedPercent = ((earnings / spendings) * 100);
+                percent = (((earnings + cValue) / spendings) * 100);
+            } else {
+                realizedPercent = 0;
+                percent = 0;
+            }
             if (percent > 100) {
                 percent -= 100;
                 totalTotalP.style.color = "green";
@@ -124,7 +133,7 @@
             } else if (realized < 0) {
                 realizedTotal.style.color = "red";
             }
-            let realizedPercent = ((earnings / spendings) * 100);
+
             if (realizedPercent > 100) {
                 realizedPercent -= 100;
                 realizedTotalP.style.color = "green";
@@ -145,57 +154,60 @@
             };
 
             const backgroundColors = generateColors(values.length);
-            console.log(coins);
-            const data = {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Value in USD', 
-                        data: values, 
-                        backgroundColor: backgroundColors,
-                        borderColor: 'rgba(0, 0, 0, 1)',
-                        borderWidth: 1
-                    },
-                    {
-                        label: 'Coins', 
-                        data: amount, 
-                        backgroundColor: backgroundColors,
-                        borderColor: 'rgba(0, 0, 0, 1)',
-                        borderWidth: 1 
-                    }]
-            };
+            if (values.length > 0) {
+                const data = {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Value in USD', 
+                            data: values, 
+                            backgroundColor: backgroundColors,
+                            borderColor: 'rgba(0, 0, 0, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Coins', 
+                            data: amount, 
+                            backgroundColor: backgroundColors,
+                            borderColor: 'rgba(0, 0, 0, 1)',
+                            borderWidth: 1 
+                        }]
+                };
 
-            const ctx = document.getElementById('myChart').getContext('2d');
-            const myChart = new Chart(ctx, {
-                type: 'pie', 
-                data: data,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                            labels: {
-                                generateLabels: (chart) => {
-                                    const data = chart.data;
-                                    const total = data.datasets[0].data.reduce((sum, value) => sum + value, 0);
-                                    return data.labels.map((label, index) => {
-                                        const value = data.datasets[0].data[index];
-                                        const percentage = ((value / total) * 100).toFixed(2);
-                                        return {
-                                            text: `${label}: ${percentage}%`,
-                                            fillStyle: data.datasets[0].backgroundColor[index],
-                                            hidden: false
-                                        };
-                                    });
+                const ctx = document.getElementById('myChart').getContext('2d');
+                const myChart = new Chart(ctx, {
+                    type: 'pie', 
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    generateLabels: (chart) => {
+                                        const data = chart.data;
+                                        const total = data.datasets[0].data.reduce((sum, value) => sum + value, 0);
+                                        return data.labels.map((label, index) => {
+                                            const value = data.datasets[0].data[index];
+                                            const percentage = ((value / total) * 100).toFixed(2);
+                                            return {
+                                                text: `${label}: ${percentage}%`,
+                                                fillStyle: data.datasets[0].backgroundColor[index],
+                                                hidden: false
+                                            };
+                                        });
+                                    }
                                 }
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Overview'
-                        },
+                            },
+                            title: {
+                                display: true,
+                                text: 'Value & Amount Chart'
+                            },
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                document.getElementById('noData').innerText = "Not enough data to display a chart.";
+            }
         </script>
 {% endblock %}
 

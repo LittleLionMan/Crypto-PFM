@@ -102,6 +102,7 @@ def coins():
             "price_change": round(price_change, 2),
             "amount": 0,
             "aSpend": 0,
+            "aEarned": 0
         }
 
         return jsonify({"ok": True, "coin": new_coin})
@@ -248,19 +249,14 @@ def tx():
         if priceObject == None:
             return jsonify({"status": "error", "message": "API Request failed"}), 400
 
-        hPrice = int(priceObject["market_data"]["current_price"]["usd"])
-        if hPrice > 1:
-            hPrice = round(hPrice, 2)
-    
+        hPrice = float(priceObject["market_data"]["current_price"]["usd"])
+
     if form_type == "swapData":
         swap_price = coingecko(f"coins/{swap_coin_id}/history?date={formatted_date}")
         if swap_price == None:
             return jsonify({"status": "error", "message": "API Request failed"}), 400
 
-        hSwapPrice = int(swap_price["market_data"]["current_price"]["usd"])
-        if hSwapPrice > 1:
-            hSwapPrice = round(hSwapPrice, 2)
-        
+        hSwapPrice = float(swap_price["market_data"]["current_price"]["usd"])
         if set_swap:
             amount = custom_amount
             opportunity_costs = swap_amount * hSwapPrice - custom_amount * hPrice

@@ -206,9 +206,9 @@
       {% for tx in txs %}
       <tr id="{{ tx.id }}">
         <td>{{ "Buy" if tx.buy else "Sell" }}</td>
-        <td>{{ tx.amount | round (6) }}</td>
-        <td>${{ tx.price }}</td>
-        <td>${{ tx.price * tx.amount }}</td>
+        <td>{{ tx.amount | round(2) }}</td>
+        <td>${{ tx.price | round(2) }}</td>
+        <td>${{ (tx.price * tx.amount) | round(2) }}</td>
         <td>{{ tx.date }}</td>
         <td><button class="btn btn-danger btn-sm delete-btn" data-tx-id="{{ tx.id }}">Delete</button></td>
       </tr>
@@ -418,9 +418,9 @@
                         newRow.id = tx.id
                         newRow.innerHTML = `
                             <td>${ tx.buy ? "Buy" : "Sell" }</td>
-                            <td>${ tx.amount }</td>
-                            <td>$${ tx.price }</td>
-                            <td>$${ tx.price * tx.amount }</td>
+                            <td>${ tx.amount}</td>
+                            <td>$${ tx.price.toFixed(2) }</td>
+                            <td>$${ (tx.price * tx.amount).toFixed(2) }</td>
                             <td>${ tx.date }</td>
                             <td><button class="btn btn-danger btn-sm delete-btn" data-tx-id="${ tx.id }">Delete</button></td>
                         `;

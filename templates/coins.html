@@ -180,7 +180,9 @@
                     </div>
                     
                     <div class="flex-grow-1">
-                        <h5 class="mb-3" href="/coins/${coin.name}">${coin.name}</h5>
+                        <h5 class="mb-3"> 
+                            <a href="/coins/${coin.name}">${coin.name}</a>
+                        </h5>
                         <div class="d-flex flex-wrap gap-2">
                             <span class="border rounded px-3 py-1 bg-light">Price: $${coin.price}</span>
                             <span class="border rounded px-3 py-1 bg-light">24h Change: ${coin.price_change}%</span>
