@@ -5,39 +5,194 @@
 {% endblock %}      
 
 {% block main %}
-    <h1>Portfolio</h1>
     <!-- https://www.chartjs.org/docs/latest/samples/other-charts/doughnut.html -->
      <!-- Realized PnL
          Unrealized PnL -->
 
-         <div class="container mt-5">
-            <h2>Beispiel für ein Diagramm</h2>
-            <div class="row">
-                <div class="col-md-8 offset-md-2">
+         <div class="container">
+            <div class="row justify-content-between">
+                <div class="col-md-5">
+                    <h2>Coin Distribution</h2>
                     <canvas id="myChart"></canvas>
+                </div>
+                <div class="col-md-5">
+                    <form action="/" method="post">
+                        <h2>Portfolio Overview</h2>
+                        <table class="table table-striped table-hover">
+                            <thead>
+                            <tr>
+                                <th scope="col"></th>
+                                <th scope="col">$</th>
+                                <th scope="col">%</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Spendings</th>
+                                    <td id="spendingsA" style="color: red;"></td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Earnings</th>
+                                    <td id="earningsA" style="color: green;"></td>
+                                    <td>-</td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Current Value</th>
+                                    <td id="currentA"></td>
+                                    <td>-</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <th scope="row">PnL</th>
+                                    <td id="totalA"></td>
+                                    <td id="totalP"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">realized PnL</th>
+                                    <td id="realizedA"></td>
+                                    <td id="realizedP"></td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">OCs</th>
+                                    <td>{{ oc }}</td>
+                                    <td>
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            Reset
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </form>
                 </div>
             </div>
         </div>
         
         <script>
+            const jsonStringCoins = '{{ coins | tojson | safe }}'.replace(/\\\"/g, '"');
+            const jsonStringOC = '{{ oc | tojson | safe }}'.replace(/\\\"/g, '"');
+            const coins = JSON.parse(jsonStringCoins);
+            const oc = JSON.parse(jsonStringOC);
+            const filteredCoins = coins.filter(coin => coin.amount > 0);
+            let sortedCoins = filteredCoins
+                .map(coin => ({ ...coin, value: coin.amount * coin.price }))
+                .sort((a, b) => b.value - a.value);
+            let labels = sortedCoins.map(coin => coin.name);
+            let values = sortedCoins.map(coin => coin.value);
+            let amount = sortedCoins.map(coin => coin.amount);
+            let spendings = coins.reduce((total, coin) => total + coin.aSpend * coin.buy, 0);
+            let earnings = coins.reduce((total, coin) => total + coin.aEarned * coin.sell, 0);
+            let cValue = coins.reduce((total, coin) => total + coin.amount * coin.price, 0);
+
+            const totalSpendings = document.getElementById("spendingsA");
+            const totalEarnings = document.getElementById("earningsA");
+            const totalCurrent = document.getElementById("currentA");
+            const totalTotal = document.getElementById("totalA");
+            const totalTotalP = document.getElementById("totalP");
+            const realizedTotal = document.getElementById("realizedA");
+            const realizedTotalP = document.getElementById("realizedP");
+
+            if (oc > 0) {
+                spendings += oc;
+            } else {
+                earnings += oc;
+            }
+
+            totalSpendings.innerText = spendings.toFixed(2);
+            totalEarnings.innerText = earnings.toFixed(2);
+            totalCurrent.innerText = cValue.toFixed(2);
+            let total = (earnings - spendings + cValue).toFixed(2);
+            totalTotal.innerText = total;
+            if (total > 0) {
+                totalTotal.style.color = "green";   
+            } else if (total < 0) {
+                totalTotal.style.color = "red";
+            }
+            let percent = (((earnings + cValue) / spendings) * 100);
+            if (percent > 100) {
+                percent -= 100;
+                totalTotalP.style.color = "green";
+            } else {
+                totalTotalP.style.color = "red";
+            }
+            totalTotalP.innerText = percent.toFixed(2);
+
+            let realized = (earnings - spendings).toFixed(2);
+            realizedTotal.innerText = realized;
+            if (realized > 0) {
+                realizedTotal.style.color = "green";   
+            } else if (realized < 0) {
+                realizedTotal.style.color = "red";
+            }
+            let realizedPercent = ((earnings / spendings) * 100);
+            if (realizedPercent > 100) {
+                realizedPercent -= 100;
+                realizedTotalP.style.color = "green";
+            } else {
+                realizedTotalP.style.color = "red";
+            }
+            realizedTotalP.innerText = realizedPercent.toFixed(2);
+
+            const generateColors = (num) => {
+                const colors = [];
+                for (let i = 0; i < num; i++) {
+                    const r = Math.floor(Math.random() * 256);
+                    const g = Math.floor(Math.random() * 256);
+                    const b = Math.floor(Math.random() * 256);
+                    colors.push(`rgba(${r}, ${g}, ${b}, 0.6)`);
+                }
+                return colors;
+            };
+
+            const backgroundColors = generateColors(values.length);
+            console.log(coins);
+            const data = {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Value in USD', 
+                        data: values, 
+                        backgroundColor: backgroundColors,
+                        borderColor: 'rgba(0, 0, 0, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Coins', 
+                        data: amount, 
+                        backgroundColor: backgroundColors,
+                        borderColor: 'rgba(0, 0, 0, 1)',
+                        borderWidth: 1 
+                    }]
+            };
+
             const ctx = document.getElementById('myChart').getContext('2d');
             const myChart = new Chart(ctx, {
-                type: 'bar', 
-                data: {
-                    labels: ['Januar', 'Februar', 'März', 'April', 'Mai'],
-                    datasets: [{
-                        label: 'Umsatz (in €)', 
-                        data: [100, 200, 150, 300, 250], 
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                },
+                type: 'pie', 
+                data: data,
                 options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                generateLabels: (chart) => {
+                                    const data = chart.data;
+                                    const total = data.datasets[0].data.reduce((sum, value) => sum + value, 0);
+                                    return data.labels.map((label, index) => {
+                                        const value = data.datasets[0].data[index];
+                                        const percentage = ((value / total) * 100).toFixed(2);
+                                        return {
+                                            text: `${label}: ${percentage}%`,
+                                            fillStyle: data.datasets[0].backgroundColor[index],
+                                            hidden: false
+                                        };
+                                    });
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Overview'
+                        },
                     }
                 }
             });

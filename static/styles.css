@@ -22,6 +22,13 @@ nav .navbar-brand .green
     color: #2e944b;
 }
 
+#myChart {
+    max-width: 50vw;
+    max-height: 60vh;
+    width: 100%;
+    height: auto;
+  }
+
 /* 
 .skyscroll {
     breakpoints for max-height

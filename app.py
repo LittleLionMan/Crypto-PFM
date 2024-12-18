@@ -1,12 +1,10 @@
-import json
-
 from cs50 import SQL
 from flask import Flask, jsonify, redirect, render_template, request, session
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
-from helpers import apology, login_required, coingecko, usd
+from helpers import apology, login_required, coingecko, usd, get_coin_info
 
 # Configure application
 app = Flask(__name__)
@@ -35,21 +33,26 @@ def after_request(response):
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
-    """Show portfolio"""
     if request.method == "POST":
-
-        """stocks = db.execute(
-            "SELECT stock, symbol, SUM(amount) FROM transactions Where user_id = ? GROUP BY stock", session["user_id"]
-        )"""
-        return apology("Hello")
+        oc = db.execute(
+            "SELECT opportunity_costs FROM users WHERE id = ?", session["user_id"]
+        )[0]["opportunity_costs"]
+        if oc != 0:
+            db.execute(
+                "UPDATE users SET opportunity_costs = ? WHERE id = ?", 0, session["user_id"]
+            )
+        return redirect("/")
     else:
-        return render_template("index.html")
+        coins = get_coin_info(session["user_id"])
+        oc = db.execute(
+            "SELECT opportunity_costs FROM users WHERE id = ?", session["user_id"]
+        )[0]["opportunity_costs"]
+        return render_template("index.html", coins = coins, oc=oc)
 
 
 @app.route("/coins", methods=["GET", "POST"])
 @login_required
 def coins():
-    
     if request.method == "POST":
         name = request.form.get("coinName")
         id = request.form.get("coinId")
@@ -107,54 +110,7 @@ def coins():
         if list == None:
             return jsonify({"status": "error", "message": "Too many API requests"}), 400
 
-        coins = db.execute (
-            "SELECT id, name, coin_id, symbol, image from coins WHERE user_id = ?", session["user_id"]
-        )
-        ids = ",".join(coin["coin_id"] for coin in coins)
-        
-        prices = coingecko(f"simple/price?ids={ids}&vs_currencies=usd&include_24hr_change=true")
-        if prices == None:
-            return jsonify({"status": "error", "message": "Too many API Requests"}), 400
-        
-        for coin in coins:
-            buys = db.execute (
-                "SELECT price, amount FROM transactions WHERE user_id = ? AND coin_id = ? AND buy = ?", session["user_id"], coin["id"], True
-            )
-
-            sells = db.execute (
-                "SELECT price, amount FROM transactions WHERE user_id = ? AND coin_id = ? AND buy = ?", session["user_id"], coin["id"], False
-            )
-    
-            amountBuy = 0;
-            amountSell = 0;
-            spend = 0;
-            earned = 0;
-            for buy in buys:
-                amountBuy = amountBuy + buy["amount"]
-                spend = spend + buy["amount"] * buy["price"]
-            for sell in sells:
-                amountSell = amountSell + sell["amount"]
-                earned = earned + sell["amount"] * sell["price"]
-            if (amountBuy - amountSell) > 1:
-                coin["amount"] = round(amountBuy - amountSell, 2)
-            else:
-                coin["amount"] = round(amountBuy - amountSell, 6) #amountBuy - amountSell
-            
-            if amountBuy == 0:
-                coin["aSpend"] = 0
-            else:
-                coin["aSpend"] = round(spend / amountBuy, 2)
-            
-            if amountSell == 0:
-                coin["aEarned"] = 0
-            else:  
-                coin["aEarned"] = round(earned / amountSell, 2)
-
-
-            coin_id = coin["coin_id"]
-            if coin_id in prices:
-                coin["price"] = prices[coin_id]["usd"]
-                coin["price_change"] = round(prices[coin_id]["usd_24h_change"], 2)
+        coins = get_coin_info(session["user_id"])
 
         return render_template("coins.html", list = list, coins = coins)
 
@@ -213,7 +169,7 @@ def delete_tx():
     except:
         return jsonify({"success": False, "error": "Tx not found"}), 404
     
-@app.route('/coins/<name>', methods=["GET", "POST"])
+@app.route('/coins/<name>', methods=["GET"])
 @login_required
 def coin_page(name):
     coin_info = db.execute(
@@ -390,79 +346,6 @@ def tx():
 
     return jsonify({"ok": True, "tx": tx, "other_tx": other_tx}), 200
 
-
-"""@app.route("/topup", methods=["GET", "POST"])
-@login_required
-def topup():
-    if request.method == "POST":
-        topup = request.form.get("amount")
-        try:
-            topup = int(topup)
-        except ValueError:
-            return apology("Invalid amount format", 400)
-        if topup > 10000:
-            return apology("Only top ups up to 10.000$ are supported")
-        if topup < 1:
-            return apology("At least 1$ is required for a top up")
-        db.execute(
-            "UPDATE users SET cash = cash + ? WHERE id = ?", topup, session["user_id"]
-        )
-        return redirect("/")
-    else:
-        return render_template("topup.html")"""
-
-"""@app.route("/buy", methods=["GET", "POST"])
-@login_required
-def buy():
-    if request.method == "POST":
-        stock = lookup(request.form.get("symbol"))
-        amount = request.form.get("shares")
-        cash = db.execute(
-            "SELECT cash FROM users WHERE id = ?", session["user_id"]
-        )
-        cash = cash[0]["cash"]
-        if not stock:
-            return apology("No stock found")
-        elif not amount:
-            return apology("Amount is required", 400)
-        try:
-            amount = int(amount)
-        except ValueError:
-            return apology("Invalid amount format", 400)
-        if amount < 0:
-            return apology("A positive amount is required")
-
-        if (cash - stock["price"] * amount) < 0:
-            return apology("You don't have enough cash to purchase this many stocks")
-
-        db.execute(
-                "INSERT INTO transactions (user_id, stock, symbol, amount, price) VALUES (?, ?, ?, ?, ?)", session["user_id"], stock["name"], stock["symbol"], amount, stock["price"]
-            )
-
-        db.execute(
-                "UPDATE users SET cash = cash - ? WHERE id = ?", stock["price"] * amount, session["user_id"]
-            )
-
-        return redirect("/")
-    else:
-        return render_template("buy.html")"""
-
-
-"""@app.route("/history")
-@login_required
-def history():
-    txs = db.execute(
-        "SELECT * from transactions WHERE user_id = ?", session["user_id"]
-    )
-    for tx in txs:
-        if tx["amount"] < 0:
-            tx["amount"] = tx["amount"] * -1
-            tx["order"] = "sell"
-        else:
-            tx["order"] = "buy"
-    return render_template("history.html", txs = txs)"""
-
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
@@ -521,21 +404,6 @@ def logout():
     # Redirect user to login form
     return redirect("/")
 
-
-"""@app.route("/quote", methods=["GET", "POST"])
-@login_required
-def quote():
-    if request.method == "POST":
-        stock = lookup(request.form.get("symbol"))
-        if not stock:
-            return apology("No stock found")
-
-        return render_template("quoted.html", stock=stock)
-
-    else:
-        return render_template("quote.html")"""
-
-
 @app.route("/register", methods=["GET", "POST"])
 def register():
     """Register user"""
@@ -571,41 +439,7 @@ def register():
         )
 
         session["user_id"] = rows[0]["id"]
-        # Redirect user to home page
         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("register.html")
-
-
-
-"""@app.route("/sell", methods=["GET", "POST"])
-@login_required
-def sell():
-    stocks = db.execute(
-            "SELECT symbol, SUM(amount) FROM transactions Where user_id = ? GROUP BY symbol", session["user_id"]
-        )
-    if request.method == "POST":
-        symbol = request.form.get("symbol")
-        amount = int(request.form.get("shares"))
-        check_amount = 0
-        for stock in stocks:
-            if stock["symbol"] == symbol:
-                check_amount = stock["SUM(amount)"]
-
-        if check_amount == 0:
-            return apology("You don't have this stock in your portfolio")
-        elif amount > check_amount:
-            return apology("You don't have this many shares of this stock in your portfolio")
-        stock = lookup(symbol)
-        db.execute(
-                "INSERT INTO transactions (user_id, stock, symbol, amount, price) VALUES (?, ?, ?, ?, ?)", session["user_id"], stock["name"], stock["symbol"], amount * -1, stock["price"]
-            )
-
-        db.execute(
-                "UPDATE users SET cash = cash + ? WHERE id = ?", stock["price"] * amount, session["user_id"]
-            )
-        return redirect("/")
-    else:
-        return render_template("sell.html", stocks=stocks)"""
