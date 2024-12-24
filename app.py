@@ -4,7 +4,7 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from datetime import datetime
 
-from helpers import apology, login_required, coingecko, usd, get_coin_info
+from helpers import login_required, coingecko, usd, get_coin_info
 
 # Configure application
 app = Flask(__name__)
@@ -249,7 +249,11 @@ def tx():
         if priceObject == None:
             return jsonify({"status": "error", "message": "API Request failed"}), 400
 
-        hPrice = float(priceObject["market_data"]["current_price"]["usd"])
+        market_data = priceObject.get("market_data")
+        if market_data is None:
+            return jsonify({"status": "error", "message": "No price information for this date"}), 400
+        else:   
+            hPrice = float(market_data["current_price"]["usd"])
 
     if form_type == "swapData":
         swap_price = coingecko(f"coins/{swap_coin_id}/history?date={formatted_date}")

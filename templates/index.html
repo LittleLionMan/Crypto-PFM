@@ -5,11 +5,7 @@
 {% endblock %}      
 
 {% block main %}
-    <!-- https://www.chartjs.org/docs/latest/samples/other-charts/doughnut.html -->
-     <!-- Realized PnL
-         Unrealized PnL -->
-
-         <div class="container">
+        <div class="container">
             <div class="row justify-content-between">
                 <div class="col-md-5">
                     <h2>Coin Distribution</h2>
@@ -122,6 +118,7 @@
                 percent -= 100;
                 totalTotalP.style.color = "green";
             } else {
+                percent = -1 * (100 - percent);
                 totalTotalP.style.color = "red";
             }
             totalTotalP.innerText = percent.toFixed(2);
@@ -135,7 +132,6 @@
             }
 
             if (realizedPercent > 100) {
-                realizedPercent -= 100;
                 realizedTotalP.style.color = "green";
             } else {
                 realizedTotalP.style.color = "red";
@@ -210,5 +206,3 @@
             }
         </script>
 {% endblock %}
-
-<!-- Toasts für api Probleme? -->
