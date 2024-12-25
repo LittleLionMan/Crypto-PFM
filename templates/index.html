@@ -117,6 +117,8 @@
             if (percent > 100) {
                 percent -= 100;
                 totalTotalP.style.color = "green";
+            } else if (percent == 0) {
+                totalTotalP.style.color = "black";
             } else {
                 percent = -1 * (100 - percent);
                 totalTotalP.style.color = "red";
@@ -133,7 +135,7 @@
 
             if (realizedPercent > 100) {
                 realizedTotalP.style.color = "green";
-            } else {
+            } else if (realizedPercent > 0 & realizedPercent < 100) {
                 realizedTotalP.style.color = "red";
             }
             realizedTotalP.innerText = realizedPercent.toFixed(2);
@@ -202,7 +204,7 @@
                     }
                 });
             } else {
-                document.getElementById('noData').innerText = "Not enough data to display a chart.";
+                document.getElementById('noData').innerText = "No data to display a chart.";
             }
         </script>
 {% endblock %}
