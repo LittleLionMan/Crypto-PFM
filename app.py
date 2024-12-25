@@ -280,7 +280,6 @@ def tx():
     except:
         return jsonify({"status": "error", "message": "Invalid coin-id"}), 400
     
-    #checks für sells
     if form_type == "sellData":
         checkTotal = db.execute(
             "WITH Bought AS ( \
@@ -295,8 +294,9 @@ def tx():
             ) \
             SELECT \
                 (Bought.total_bought - Sold.total_sold) AS net_amount \
-            FROM Bought, Sold", date, swap_id, date, swap_id
+            FROM Bought, Sold", date, id, date, id
         )[0]["net_amount"]
+
         if checkTotal < amount:
             return jsonify({"status": "error", "message": "You can't sell more coins than you own"}), 400
     

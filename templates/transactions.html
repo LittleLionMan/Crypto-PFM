@@ -323,11 +323,18 @@
 
         dateInputSwap.addEventListener('input', () => {
             const selectedDate = dateInputSwap.value;
-
-            const totalAmount = filteredTxs
+            let totalAmount = 0
+            const totalAmountAtDate = filteredTxs
                 .filter(tx => new Date(tx.date) <= new Date(selectedDate))
                 .reduce((sum, tx) => tx.buy ? sum + tx.amount : sum - tx.amount, 0);
 
+            const totalAmountToday = filteredTxs
+                .reduce((sum, tx) => tx.buy ? sum + tx.amount : sum - tx.amount, 0);
+            if (totalAmountToday > totalAmountAtDate) {
+                totalAmount = totalAmountAtDate
+            } else {
+                totalAmount = totalAmountToday
+            }
             if (totalAmount > 0) {
                 amountInput.disabled = false;
                 amountInput.max = totalAmount;
@@ -339,7 +346,7 @@
             }
         });
 
-        function calculateMaxAmount(date = null) {
+        function calculateMaxAmount(date = null, txs) {
             const selltxs = txs.reduce((sum, tx) => sum - (tx.buy ? 0 : tx.amount), 0);
             const filteredTxs = date
                 ? txs.filter(tx => new Date(tx.date) <= new Date(date))
@@ -353,21 +360,36 @@
 
         }
 
-        function updateMaxAmount() {
+        function updateMaxAmountSell() {
             const selectedDate = dateInputSell.value;
-            const maxAmount = calculateMaxAmount(selectedDate);
+            const maxAmount = calculateMaxAmount(selectedDate, txs);
 
             amountSellInput.max = maxAmount;
-            maxAmountSpanSell.textContent = maxAmount;
+            maxAmountSpanSell.textContent = maxAmount.toFixed(2);
         }
 
-        updateMaxAmount();
-        dateInputSell.addEventListener('change', updateMaxAmount);
+        function updateMaxAmountSwap() {
+            const selectedDate = dateInputSwap.value;
+            const maxAmount = calculateMaxAmount(selectedDate, filteredTxs);
+
+            amountInput.max = maxAmount;
+            maxAmountSpanSwap.textContent = maxAmount.toFixed(2);
+        }
+
+        dateInputSell.addEventListener('change', updateMaxAmountSell);
 
         const sellModal = document.getElementById('addSell');
         sellModal.addEventListener('show.bs.modal', () => {
-            updateMaxAmount();
+            updateMaxAmountSell();
         });
+
+        dateInputSwap.addEventListener('change', updateMaxAmountSwap);
+
+        const swapModal = document.getElementById('addSwap');
+        swapModal.addEventListener('show.bs.modal', () => {
+            updateMaxAmountSwap();
+        });
+
 
         const formIds = ["buyData", "sellData", "swapData"];
 
@@ -411,6 +433,7 @@
                                 amount: other_tx.amount
                             };
                             other_txs.push(newoTx);
+                            filteredTxs.push(newoTx);
                         }
 
                         const tBody = document.querySelector(".table-group-divider");
@@ -418,7 +441,7 @@
                         newRow.id = tx.id
                         newRow.innerHTML = `
                             <td>${ tx.buy ? "Buy" : "Sell" }</td>
-                            <td>${ tx.amount}</td>
+                            <td>${ tx.amount.toFixed(2) }</td>
                             <td>$${ tx.price.toFixed(2) }</td>
                             <td>$${ (tx.price * tx.amount).toFixed(2) }</td>
                             <td>${ tx.date }</td>
